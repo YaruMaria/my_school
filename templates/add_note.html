@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1 style="font-size: 34px;">✏️ Новая запись</h1>
+    <p style="font-size: 18px;"><strong>Ученик:</strong> {{ student.name }}</p>
+
+    <div style="background: #fefcf3; padding: 35px; border-radius: 12px; max-width: 750px; margin: 25px auto; box-shadow: 0 4px 25px rgba(0,0,0,0.08); border: 2px solid #d4c9b8;">
+        <form method="post" enctype="multipart/form-data">
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">📝 Шаблон записи:</label>
+                <select name="template_used" id="template_select" style="width: 100%; padding: 12px; border: 2px solid #d4c9b8; border-radius: 8px; font-size: 16px; background: white;" onchange="updateTemplateFields()">
+                    <option value="">Без шаблона</option>
+                    {% for template in note_templates %}
+                        <option value="{{ template.id }}">{{ template.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="template_fields" style="margin-bottom: 20px; display: none; background: #faf8f5; padding: 15px; border-radius: 8px; border: 2px dashed #d4c9b8;"></div>
+
+            <div id="standard_fields">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">📅 Дата:</label>
+                    <input type="text" name="date" value="{{ now.strftime('%d.%m.%Y') }}"
+                           style="width: 100%; padding: 12px; border: none; border-bottom: 3px solid #d4c9b8; background: transparent; font-size: 18px;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">📌 Тема:</label>
+                    <input type="text" name="topic" placeholder="Тема урока" required
+                           style="width: 100%; padding: 12px; border: none; border-bottom: 3px solid #d4c9b8; background: transparent; font-size: 18px;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">📝 Содержание:</label>
+                    <textarea name="content" rows="6" id="content_text"
+                              style="width: 100%; padding: 15px; border: 2px solid #d4c9b8; border-radius: 10px; background: #fcf8f0; font-size: 17px; line-height: 2.0;"
+                              placeholder="Что прошли на уроке..."></textarea>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">✍️ Стиль шрифта:</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    {% for font in font_styles %}
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 8px 15px; border: 2px solid #e0d8cc; border-radius: 8px; cursor: pointer; background: white; transition: all 0.3s;"
+                           onmouseover="this.style.borderColor='#5d7b6f'"
+                           onmouseout="this.style.borderColor='#e0d8cc'">
+                        <input type="radio" name="font_style" value="{{ font.id }}" {% if loop.first %}checked{% endif %}>
+                        <span style="font-family: {{ font.css }}; font-size: 18px;">{{ font.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px; padding: 15px; background: #faf8f5; border-radius: 10px; border: 2px dashed #d4c9b8;">
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 10px; font-size: 16px;">📎 Вложения (фото, файлы):</label>
+                <input type="file" name="attachments" multiple accept="image/*,.pdf,.doc,.docx"
+                       style="width: 100%; padding: 10px; border: 2px solid #d4c9b8; border-radius: 8px; background: white;">
+                <p style="font-size: 12px; color: #8a7b66; margin-top: 5px;">Можно выбрать несколько файлов (JPG, PNG, PDF, DOC)</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 18px;">
+                    <input type="checkbox" name="is_done" style="width: 24px; height: 24px;">
+                    ✅ Задание выполнено
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+                <button type="submit" class="btn" style="font-size: 18px; padding: 15px 40px; border-radius: 10px;">Сохранить запись 📝</button>
+                <a href="{{ url_for('student_detail', id=student.id) }}" class="btn btn-secondary" style="font-size: 18px; padding: 15px 40px;">Отмена</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const TEMPLATES = {{ note_templates|tojson }};
+
+        function updateTemplateFields() {
+            const select = document.getElementById('template_select');
+            const container = document.getElementById('template_fields');
+            const standardFields = document.getElementById('standard_fields');
+            const templateId = select.value;
+
+            if (!templateId) {
+                container.style.display = 'none';
+                standardFields.style.display = 'block';
+                return;
+            }
+
+            const template = TEMPLATES.find(t => t.id === templateId);
+            if (!template) return;
+
+            container.style.display = 'block';
+            standardFields.style.display = 'none';
+
+            let html = '';
+            const labels = {
+                'goal': '🎯 Цель урока',
+                'materials': '📚 Материалы и оборудование',
+                'homework': '📝 Домашнее задание',
+                'strengths': '💪 Что получилось хорошо',
+                'improvements': '📈 Что нужно улучшить',
+                'recommendations': '💡 Рекомендации',
+                'rating': '⭐ Оценка (1-5)'
+            };
+            const placeholders = {
+                'goal': 'Чему хотим научиться?',
+                'materials': 'Что нужно для урока?',
+                'homework': 'Что задать на дом?',
+                'strengths': 'Что у ученика получилось лучше всего?',
+                'improvements': 'Над чем стоит поработать?',
+                'recommendations': 'Что посоветовать ученику?',
+                'rating': 'Поставьте оценку от 1 до 5'
+            };
+
+            for (const field of template.fields) {
+                if (field === 'date' || field === 'topic' || field === 'content') continue;
+                const label = labels[field] || field;
+                const placeholder = placeholders[field] || '';
+                html += `
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 5px; font-size: 15px;">${label}:</label>
+                        <textarea name="${field}" rows="2"
+                                  style="width: 100%; padding: 10px; border: 2px solid #d4c9b8; border-radius: 8px; background: #fcf8f0; font-size: 16px; line-height: 1.8;"
+                                  placeholder="${placeholder}"></textarea>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1 style="font-size: 34px;">📒 Новая тетрадь ученика</h1>
+
+    <form method="post">
+        <div style="display: grid; gap: 20px; max-width: 600px; margin: 20px 0;">
+            <div>
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 18px;">Имя ученика:</label>
+                <input type="text" name="name" required style="width: 100%; padding: 14px; border: 2px solid #d4c9b8; border-radius: 10px; font-size: 18px;">
+            </div>
+            <div>
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 18px;">Предмет:</label>
+                <input type="text" name="subject" required style="width: 100%; padding: 14px; border: 2px solid #d4c9b8; border-radius: 10px; font-size: 18px;">
+            </div>
+            <div>
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 18px;">Возраст:</label>
+                <input type="number" name="age" required style="width: 100%; padding: 14px; border: 2px solid #d4c9b8; border-radius: 10px; font-size: 18px;">
+            </div>
+
+            <div>
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 15px; font-size: 18px;">🎨 Выберите цвет тетради:</label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px;">
+                    {% for color in colors %}
+                    <label style="text-align: center; padding: 12px; border: 4px solid #ddd; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: {{ color.bg }};"
+                           onmouseover="this.style.borderColor='#5d7b6f'; this.style.transform='scale(1.05)';"
+                           onmouseout="this.style.borderColor='#ddd'; this.style.transform='scale(1)';">
+                        <input type="radio" name="color" value="{{ color.id }}" {% if loop.first %}checked{% endif %}>
+                        <div style="font-size: 30px; margin: 5px 0;">{{ color.name[:2] }}</div>
+                        <div style="font-size: 12px; font-weight: bold; color: #4a3f35;">{{ color.name }}</div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 15px; font-size: 18px;">🖼️ Выберите обложку:</label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px;">
+                    {% for cover in covers %}
+                    <label style="text-align: center; padding: 12px; border: 4px solid #ddd; border-radius: 16px; cursor: pointer; transition: all 0.3s; background: #faf8f5;"
+                           onmouseover="this.style.borderColor='#5d7b6f'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 8px 30px rgba(0,0,0,0.12)';"
+                           onmouseout="this.style.borderColor='#ddd'; this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                        <input type="radio" name="cover" value="{{ cover.filename }}" {% if loop.first %}checked{% endif %} style="width: 16px; height: 16px;">
+                        <img src="{{ cover.path }}" alt="Обложка" style="width: 100%; height: 120px; object-fit: cover; border-radius: 10px; margin: 8px 0; border: 2px solid #e8e0d5;">
+                        <div style="font-size: 12px; color: #6b5d4e;">{{ cover.filename[:15] }}</div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn" style="font-size: 22px; padding: 18px; border-radius: 12px;">Создать тетрадь 📓</button>
+        </div>
+    </form>
+
+    <div style="margin-top: 25px;">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary" style="font-size: 16px; padding: 12px 28px;">← Назад</a>
+    </div>
+{% endblock %}

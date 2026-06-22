@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block content %}
+    {% set color = COLORS|selectattr('id', 'equalto', student.color)|first %}
+    {% if not color %}{% set color = COLORS[0] %}{% endif %}
+
+    <style>
+        .notebook-spread {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            background: {{ color.bg }};
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.06);
+            margin: 25px 0;
+            min-height: 500px;
+        }
+        .page {
+            background: #fefcf3;
+            padding: 30px 35px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            min-height: 450px;
+            position: relative;
+            background-image: linear-gradient(rgba(200, 200, 200, 0.12) 1px, transparent 1px);
+            background-size: 100% 32px;
+            background-position: 0 45px;
+            transition: all 0.3s ease;
+        }
+        .page:hover {
+            box-shadow: 0 8px 35px rgba(0,0,0,0.12);
+        }
+        .page-left {
+            border-right: 3px solid {{ color.border }};
+            padding-right: 40px;
+        }
+        .page-right {
+            padding-left: 40px;
+        }
+
+        .page .content-text {
+            font-size: 17px;
+            line-height: 2.2;
+            color: #3d352b;
+            min-height: 120px;
+            padding: 10px 5px;
+            white-space: pre-wrap;
+        }
+
+        .font-handwriting { font-family: 'Comic Sans MS', 'Segoe Script', cursive; }
+        .font-print { font-family: 'Arial', 'Helvetica', sans-serif; }
+        .font-elegant { font-family: 'Georgia', 'Times New Roman', serif; }
+        .font-childish { font-family: 'Comic Sans MS', 'Chalkboard SE', cursive; }
+        .font-minimal { font-family: 'Verdana', 'Tahoma', sans-serif; }
+
+        .sticker-item {
+            position: relative;
+            display: inline-block;
+            background: #fcf8f0;
+            padding: 10px 18px;
+            border-radius: 30px;
+            border: 3px solid #f0ece4;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: default;
+        }
+        .sticker-item:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+        }
+        .sticker-item .sticker-image {
+            width: 55px;
+            height: 55px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid #d4c9b8;
+            vertical-align: middle;
+        }
+        .sticker-item .sticker-emoji {
+            font-size: 42px;
+            vertical-align: middle;
+        }
+        .sticker-item .sticker-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4a3f35;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .sticker-item .sticker-delete {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            text-align: center;
+            line-height: 26px;
+            text-decoration: none;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(255,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .sticker-item .sticker-delete:hover {
+            transform: scale(1.2);
+        }
+
+        .sticker-picker-btn {
+            border: 2px solid #e0d8cc;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            padding: 8px 14px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .sticker-picker-btn:hover {
+            border-color: #5d7b6f;
+            background: #f0f7f3;
+            transform: scale(1.05);
+        }
+        .sticker-picker-btn .picker-image {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #d4c9b8;
+        }
+        .sticker-picker-btn .picker-emoji {
+            font-size: 32px;
+        }
+        .sticker-picker-btn .picker-text {
+            font-size: 13px;
+            font-weight: bold;
+            color: #4a3f35;
+        }
+
+        @media (max-width: 900px) {
+            .notebook-spread {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+            .page-left {
+                border-right: none;
+                border-bottom: 3px solid {{ color.border }};
+                padding-right: 25px;
+                padding-bottom: 25px;
+            }
+            .page-right {
+                padding-left: 25px;
+                padding-top: 10px;
+            }
+            .sticker-item {
+                padding: 8px 14px;
+            }
+            .sticker-item .sticker-image {
+                width: 40px;
+                height: 40px;
+            }
+            .sticker-item .sticker-emoji {
+                font-size: 32px;
+            }
+            .sticker-item .sticker-text {
+                font-size: 14px;
+            }
+        }
+    </style>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h1 style="display: flex; align-items: center; gap: 20px; font-size: 32px;">
+            <img src="{{ url_for('static', filename='covers/' + student.cover) }}"
+                 alt="Обложка"
+                 style="width: 80px; height: 80px; object-fit: cover; border-radius: 16px; border: 4px solid {{ color.border }}; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+            <span>{{ student.name }} <span style="font-size: 22px; color: #6b5d4e;">— {{ student.subject }}</span></span>
+            <span style="font-size: 20px; background: {{ color.bg }}; padding: 5px 15px; border-radius: 20px; border: 2px solid {{ color.border }};">
+                {{ color.name }}
+            </span>
+        </h1>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <a href="{{ url_for('add_note', student_id=student.id) }}" class="btn" style="font-size: 16px; padding: 12px 28px;">✏️ Новый урок</a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary" style="font-size: 16px; padding: 12px 28px;">← Все тетради</a>
+        </div>
+    </div>
+
+    <p style="font-size: 18px; color: #4a3f35;"><strong>Возраст:</strong> {{ student.age }} лет | <strong>Всего уроков:</strong> {{ notes|length }}</p>
+
+    <!-- ПОИСК -->
+    <div style="margin: 20px 0; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <form method="get" style="flex: 1; display: flex; gap: 10px; max-width: 500px;">
+            <input type="text" name="search" placeholder="🔍 Поиск по теме или содержанию..."
+                   value="{{ search_query }}"
+                   style="flex: 1; padding: 12px 18px; border: 2px solid #d4c9b8; border-radius: 10px; font-size: 16px;">
+            <button type="submit" class="btn" style="padding: 12px 24px;">Найти</button>
+        </form>
+        {% if search_query %}
+            <a href="{{ url_for('student_detail', id=student.id) }}" class="btn btn-secondary">✕ Сбросить</a>
+        {% endif %}
+    </div>
+
+    <!-- КАЛЕНДАРЬ -->
+    <details style="margin-bottom: 20px;">
+        <summary style="cursor: pointer; font-size: 18px; font-weight: bold; color: #4a3f35; padding: 10px; background: #f5ede0; border-radius: 8px;">
+            📅 Календарь занятий {{ calendar_data.month_name }} {{ calendar_data.year }}
+        </summary>
+        <div style="margin-top: 15px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <a href="{{ url_for('student_detail', id=student.id) }}?month={{ current_month - 1 if current_month > 1 else 12 }}&year={{ current_year - 1 if current_month == 1 else current_year }}"
+                   class="btn btn-secondary" style="padding: 8px 20px;">◀</a>
+                <span style="font-size: 20px; font-weight: bold;">{{ calendar_data.month_name }} {{ calendar_data.year }}</span>
+                <a href="{{ url_for('student_detail', id=student.id) }}?month={{ current_month + 1 if current_month < 12 else 1 }}&year={{ current_year + 1 if current_month == 12 else current_year }}"
+                   class="btn btn-secondary" style="padding: 8px 20px;">▶</a>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; text-align: center;">
+                <thead>
+                    <tr style="background: #f5ede0;">
+                        <th style="padding: 10px; border: 1px solid #d4c9b8;">Пн</th>
+                        <th style="padding: 10px; border: 1px solid #d4c9b8;">Вт</th>
+                        <th style="padding: 10px; border: 1px solid #d4c9b8;">Ср</th>
+                        <th style="padding: 10px; border: 1px solid #d4c9b8;">Чт</th>
+                        <th style="padding: 10px; border: 1px solid #d4c9b8;">Пт</th>
+                        <th style="padding: 10px; border: 1px solid #d4c9b8;">Сб</th>
+                        <th style="padding: 10px; border: 1px solid #d4c9b8;">Вс</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for week in calendar_data.weeks %}
+                    <tr>
+                        {% for day in week %}
+                            {% set date_str = day ~ '.' ~ current_month ~ '.' ~ current_year if day > 0 else '' %}
+                            {% set has_note = date_str in calendar_data.notes_by_date %}
+                            <td style="padding: 8px; border: 1px solid #d4c9b8; {% if day == 0 %}color: #ddd;{% endif %} {% if has_note %}background: {{ color.border }}; font-weight: bold;{% endif %}">
+                                {% if day > 0 %}
+                                    {{ day }}
+                                    {% if has_note %}
+                                        <span style="display: block; font-size: 16px;">📝</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p style="margin-top: 10px; font-size: 14px; color: #8a7b66;">📝 Дни с занятиями отмечены цветом</p>
+        </div>
+    </details>
+
+    <!-- ПАГИНАЦИЯ -->
+    {% set page = request.args.get('page', 0)|int %}
+    {% set per_page = 2 %}
+    {% set total_pages = (notes|length / per_page)|round(0, 'ceil')|int %}
+    {% set start = page * per_page %}
+    {% set end = start + per_page %}
+    {% set page_notes = notes[start:end] %}
+
+    <!-- РАЗВОРОТ ТЕТРАДИ -->
+    <div class="notebook-spread">
+        {% for note in page_notes %}
+            <div class="page {% if loop.index == 1 %}page-left{% else %}page-right{% endif %}" style="position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid {{ color.border }}; padding-bottom: 12px; margin-bottom: 15px;">
+                    <div>
+                        <span style="font-weight: bold; color: #4a3f35; font-size: 22px;">📅 {{ note.date }}</span>
+                        <span style="margin-left: 15px; color: #6b5d4e; font-weight: bold; font-size: 19px;">{{ note.topic }}</span>
+                        {% if note.template_used %}
+                            <span style="margin-left: 10px; font-size: 12px; background: #f5ede0; padding: 2px 10px; border-radius: 10px; color: #8a7b66;">📋 шаблон</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <a href="{{ url_for('toggle_note', note_id=note.id) }}" style="text-decoration: none; font-size: 28px;" title="Отметить как сделанное">
+                            {% if note.is_done %}✅{% else %}⬜{% endif %}
+                        </a>
+                        <a href="{{ url_for('delete_note', note_id=note.id) }}" onclick="return confirm('Удалить урок?')" style="color: #c0392b; text-decoration: none; margin-left: 12px; font-size: 24px;">✕</a>
+                    </div>
+                </div>
+
+                <div class="content-text font-{{ note.font_style }}">
+                    {{ note.content }}
+                </div>
+
+                <!-- ВЛОЖЕНИЯ -->
+                {% if note.attachments %}
+                    <div style="margin-top: 15px; padding: 10px; background: #faf8f5; border-radius: 8px; border: 1px solid #e8e0d5;">
+                        <div style="font-size: 14px; font-weight: bold; color: #4a3f35; margin-bottom: 8px;">📎 Вложения:</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            {% for attachment in note.attachments %}
+                                <div style="display: flex; align-items: center; gap: 5px; background: white; padding: 5px 12px; border-radius: 15px; border: 1px solid #d4c9b8; font-size: 13px;">
+                                    {% if attachment.filetype in ['jpg', 'jpeg', 'png', 'gif', 'webp'] %}
+                                        <img src="{{ attachment.filepath }}" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px;">
+                                    {% elif attachment.filetype == 'pdf' %}
+                                        <span>📄</span>
+                                    {% elif attachment.filetype in ['doc', 'docx'] %}
+                                        <span>📝</span>
+                                    {% else %}
+                                        <span>📎</span>
+                                    {% endif %}
+                                    <a href="{{ attachment.filepath }}" target="_blank" style="color: #5d7b6f; text-decoration: none;">{{ attachment.filename[:20] }}</a>
+                                    <a href="{{ url_for('delete_attachment', attachment_id=attachment.id) }}"
+                                       onclick="return confirm('Удалить вложение?')"
+                                       style="color: #c0392b; text-decoration: none; font-size: 14px;">✕</a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- НАКЛЕЙКИ -->
+                <div style="margin-top: 18px; padding-top: 15px; border-top: 2px dashed {{ color.border }};">
+                    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
+                        {% for sticker in note.stickers %}
+                            <div class="sticker-item">
+                                {% if sticker.is_custom %}
+                                    <img src="{{ sticker.image }}" alt="Наклейка" class="sticker-image">
+                                {% else %}
+                                    <span class="sticker-emoji">{{ sticker.image }}</span>
+                                {% endif %}
+                                <span class="sticker-text">{{ sticker.text }}</span>
+                                <a href="{{ url_for('delete_sticker', sticker_id=sticker.id) }}"
+                                   onclick="return confirm('Удалить наклейку?')"
+                                   class="sticker-delete">
+                                    ✕
+                                </a>
+                            </div>
+                        {% else %}
+                            <span style="font-size: 16px; color: #8a7b66;">✨ Нет наклеек</span>
+                        {% endfor %}
+                    </div>
+
+                    <details style="margin-top: 12px;">
+                        <summary style="cursor: pointer; color: #5d7b6f; font-size: 16px; font-weight: bold; padding: 8px 0;">➕ Добавить наклейку</summary>
+                        <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; background: #faf8f5; padding: 15px; border-radius: 12px;">
+                            <form method="post" action="{{ url_for('add_sticker_to_note', note_id=note.id) }}" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                {% for sticker in all_stickers %}
+                                    <button type="submit" name="sticker_id" value="{{ sticker.id }}" class="sticker-picker-btn">
+                                        {% if sticker.is_custom %}
+                                            <img src="{{ url_for('static', filename='stickers/' + sticker.image_file) }}" class="picker-image">
+                                        {% else %}
+                                            <span class="picker-emoji">{{ sticker.emoji }}</span>
+                                        {% endif %}
+                                        <span class="picker-text">{{ sticker.text }}</span>
+                                    </button>
+                                {% endfor %}
+                            </form>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        {% else %}
+            <div class="page page-left" style="text-align: center; padding: 80px 20px; color: #8a7b66;">
+                <p style="font-size: 60px; margin: 0;">📭</p>
+                <p style="font-size: 22px;">{% if search_query %}По вашему запросу ничего не найдено{% else %}Нет уроков. Напишите первый!{% endif %}</p>
+                <a href="{{ url_for('add_note', student_id=student.id) }}" class="btn" style="margin-top: 25px; font-size: 18px; padding: 15px 35px;">✏️ Добавить урок</a>
+            </div>
+            <div class="page page-right" style="text-align: center; padding: 80px 20px; color: #8a7b66; background: #fcf8f0;">
+                <p style="font-size: 60px; margin: 0;">✨</p>
+                <p style="font-size: 22px;">Здесь будут ваши записи</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- НАВИГАЦИЯ -->
+    {% if notes|length > per_page %}
+    <div style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-top: 30px; padding: 20px; background: #f5ede0; border-radius: 16px;">
+        <a href="{{ url_for('student_detail', id=student.id) }}?page={{ page - 1 }}{% if search_query %}&search={{ search_query }}{% endif %}"
+           class="btn btn-secondary"
+           style="font-size: 18px; padding: 12px 30px; {% if page == 0 %}opacity: 0.3; pointer-events: none;{% endif %}">
+            ◀ Назад
+        </a>
+
+        <span style="font-weight: bold; color: #4a3f35; font-size: 20px;">
+            Страница {{ page + 1 }} из {{ total_pages if total_pages > 0 else 1 }}
+        </span>
+
+        <a href="{{ url_for('student_detail', id=student.id) }}?page={{ page + 1 }}{% if search_query %}&search={{ search_query }}{% endif %}"
+           class="btn btn-secondary"
+           style="font-size: 18px; padding: 12px 30px; {% if page >= total_pages - 1 %}opacity: 0.3; pointer-events: none;{% endif %}">
+            Вперёд ▶
+        </a>
+    </div>
+    {% endif %}
+
+    <div style="margin-top: 25px; text-align: center; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+        <a href="{{ url_for('add_note', student_id=student.id) }}" class="btn" style="font-size: 18px; padding: 14px 35px;">✏️ Новый урок</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary" style="font-size: 18px; padding: 14px 35px;">← Ко всем ученикам</a>
+    </div>
+{% endblock %}
