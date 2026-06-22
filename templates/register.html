@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 450px; margin: 50px auto; padding: 40px; background: #fefcf3; border-radius: 20px; box-shadow: 0 8px 40px rgba(0,0,0,0.12); border: 2px solid #d4c9b8;">
+    <h1 style="text-align: center; font-size: 32px; margin-bottom: 10px;">📝 Регистрация</h1>
+    <p style="text-align: center; color: #6b5d4e; margin-bottom: 30px;">Создайте аккаунт учителя</p>
+    
+    <form method="post">
+        <div style="margin-bottom: 18px;">
+            <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">👤 Имя пользователя:</label>
+            <input type="text" name="username" required
+                   style="width: 100%; padding: 14px; border: 2px solid #d4c9b8; border-radius: 10px; font-size: 16px; background: white; transition: border-color 0.3s;"
+                   onfocus="this.style.borderColor='#5d7b6f'"
+                   onblur="this.style.borderColor='#d4c9b8'">
+        </div>
+        
+        <div style="margin-bottom: 18px;">
+            <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">📧 Email:</label>
+            <input type="email" name="email" required
+                   style="width: 100%; padding: 14px; border: 2px solid #d4c9b8; border-radius: 10px; font-size: 16px; background: white; transition: border-color 0.3s;"
+                   onfocus="this.style.borderColor='#5d7b6f'"
+                   onblur="this.style.borderColor='#d4c9b8'">
+        </div>
+        
+        <div style="margin-bottom: 18px;">
+            <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">🔒 Пароль:</label>
+            <input type="password" name="password" required
+                   style="width: 100%; padding: 14px; border: 2px solid #d4c9b8; border-radius: 10px; font-size: 16px; background: white; transition: border-color 0.3s;"
+                   onfocus="this.style.borderColor='#5d7b6f'"
+                   onblur="this.style.borderColor='#d4c9b8'">
+            <small style="color: #8a7b66; font-size: 13px;">Минимум 6 символов</small>
+        </div>
+        
+        <div style="margin-bottom: 25px;">
+            <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 8px; font-size: 16px;">🔐 Подтвердите пароль:</label>
+            <input type="password" name="confirm_password" required
+                   style="width: 100%; padding: 14px; border: 2px solid #d4c9b8; border-radius: 10px; font-size: 16px; background: white; transition: border-color 0.3s;"
+                   onfocus="this.style.borderColor='#5d7b6f'"
+                   onblur="this.style.borderColor='#d4c9b8'">
+        </div>
+        
+        <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 20px; border-radius: 12px;">Создать аккаунт 🚀</button>
+    </form>
+    
+    <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 2px solid #e8e0d5;">
+        <p style="color: #6b5d4e;">Уже есть аккаунт? <a href="{{ url_for('login') }}" style="color: #5d7b6f; font-weight: bold; text-decoration: none;">Войти</a></p>
+    </div>
+</div>
+{% endblock %}

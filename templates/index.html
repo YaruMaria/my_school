@@ -1,103 +1,94 @@
 {% extends "base.html" %}
 {% block content %}
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-        <h1 style="font-size: 36px;">📚 Мои тетради</h1>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-            <a href="{{ url_for('add_student') }}" class="btn" style="font-size: 16px; padding: 14px 28px;">➕ Новая тетрадь</a>
-
-            <form method="post" action="{{ url_for('upload_cover') }}" enctype="multipart/form-data" style="display: inline-flex; align-items: center; gap: 10px; background: #f5ede0; padding: 8px 18px; border-radius: 12px; border: 2px solid #d4c9b8;">
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px;">
-                    <span style="font-size: 22px;">🖼️</span>
-                    <span style="font-weight: bold; color: #4a3f35;">Обложка</span>
-                    <input type="file" name="file" accept="image/*" required style="display: none;" onchange="this.form.submit()">
-                </label>
-            </form>
-
-            <form method="post" action="{{ url_for('upload_sticker') }}" enctype="multipart/form-data" style="display: inline-flex; align-items: center; gap: 10px; background: #f5ede0; padding: 8px 18px; border-radius: 12px; border: 2px solid #d4c9b8;">
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px;">
-                    <span style="font-size: 22px;">📸</span>
-                    <span style="font-weight: bold; color: #4a3f35;">Наклейка</span>
-                    <input type="file" name="file" accept="image/*" required style="display: none;" onchange="this.form.submit()">
-                </label>
-            </form>
-        </div>
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+    <h1 style="font-size: 34px;">📓 Мои ученики</h1>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <span style="color: #4a3f35; font-weight: bold;">👋 {{ user.username }}</span>
+        <a href="{{ url_for('profile') }}" class="btn btn-secondary" style="font-size: 14px; padding: 8px 18px;">👤 Профиль</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="font-size: 14px; padding: 8px 18px; background: #c0392b;">🚪 Выйти</a>
     </div>
+</div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; margin-top: 35px;">
-        {% for s in students %}
-            {% set color = COLORS|selectattr('id', 'equalto', s.color)|first %}
-            {% if not color %}{% set color = COLORS[0] %}{% endif %}
-            <a href="{{ url_for('student_detail', id=s.id) }}" style="text-decoration: none; color: inherit;">
-                <div style="background: {{ color.bg }}; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: transform 0.3s, box-shadow 0.3s; border: 3px solid {{ color.border }};">
-                    <img src="{{ url_for('static', filename='covers/' + s.cover) }}"
-                         alt="Обложка"
-                         style="width: 100%; height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; border: 3px solid {{ color.border }}; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <h3 style="margin: 10px 0 5px 0; font-size: 24px;">{{ s.name }}</h3>
-                    <p style="margin: 5px 0; color: #6b5d4e; font-size: 18px;">{{ s.subject }}</p>
-                    <p style="margin: 5px 0; color: #8a7b66; font-size: 15px;">{{ s.age }} лет</p>
-                    <p style="margin: 5px 0; font-size: 15px; color: #5d7b6f;">
-                        📝 {{ s.notes|length }} уроков
-                        <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: {{ color.border }}; margin-left: 8px;"></span>
-                    </p>
+<p style="font-size: 18px; color: #6b5d4e;">Всего учеников: {{ students|length }}</p>
+
+<div style="display: flex; gap: 15px; flex-wrap: wrap; margin: 25px 0;">
+    <a href="{{ url_for('add_student') }}" class="btn" style="font-size: 18px; padding: 14px 35px;">➕ Добавить ученика</a>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
+    {% for student in students %}
+        {% set color = COLORS|selectattr('id', 'equalto', student.color)|first %}
+        {% if not color %}{% set color = COLORS[0] %}{% endif %}
+        <div style="background: {{ color.bg }}; border-radius: 16px; padding: 20px; border: 3px solid {{ color.border }}; transition: transform 0.3s, box-shadow 0.3s;"
+             onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 8px 30px rgba(0,0,0,0.12)';"
+             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="{{ url_for('static', filename='covers/' + student.cover) }}"
+                     alt="Обложка"
+                     style="width: 70px; height: 70px; object-fit: cover; border-radius: 12px; border: 3px solid {{ color.border }};">
+                <div>
+                    <h3 style="margin: 0; font-size: 22px;">{{ student.name }}</h3>
+                    <p style="margin: 0; color: #6b5d4e; font-size: 16px;">{{ student.subject }}</p>
+                    <p style="margin: 0; color: #6b5d4e; font-size: 14px;">{{ student.age }} лет</p>
                 </div>
-            </a>
-        {% else %}
-            <p style="grid-column: 1/-1; text-align: center; color: #8a7b66; padding: 60px 0; font-size: 20px;">📭 Пока нет тетрадей. Создайте первую!</p>
-        {% endfor %}
-    </div>
-
-    <!-- Галерея обложек -->
-    <div style="margin-top: 50px; padding: 25px; background: #faf8f5; border-radius: 16px; border: 2px dashed #d4c9b8;">
-        <h3 style="margin-top: 0; display: flex; align-items: center; gap: 12px; font-size: 24px;">
-            <span>🖼️</span> Мои обложки
-        </h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 15px;">
-            {% for cover in get_available_covers() %}
-                <div style="position: relative; display: inline-block; background: white; padding: 12px; border-radius: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center;">
-                    <img src="{{ cover.path }}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 10px; border: 3px solid #d4c9b8;">
-                    <div style="font-size: 12px; color: #6b5d4e; margin-top: 5px;">{{ cover.filename[:15] }}</div>
-                    {% if cover.filename != 'default.jpg' %}
-                    <a href="{{ url_for('delete_cover', filename=cover.filename) }}"
-                       onclick="return confirm('Удалить обложку?')"
-                       style="position: absolute; top: -8px; right: -8px; background: #ff6b6b; color: white; border-radius: 50%; width: 26px; height: 26px; text-align: center; line-height: 26px; text-decoration: none; font-size: 16px;">✕</a>
-                    {% endif %}
-                </div>
-            {% endfor %}
+            </div>
+            <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{{ url_for('student_detail', id=student.id) }}" class="btn" style="font-size: 14px; padding: 8px 20px;">📖 Открыть</a>
+            </div>
         </div>
-    </div>
+    {% else %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: #faf8f5; border-radius: 16px;">
+            <p style="font-size: 60px; margin: 0;">📭</p>
+            <p style="font-size: 22px; color: #6b5d4e;">У вас пока нет учеников</p>
+            <a href="{{ url_for('add_student') }}" class="btn" style="margin-top: 20px; font-size: 18px; padding: 14px 35px;">➕ Создать первую тетрадь</a>
+        </div>
+    {% endfor %}
+</div>
 
-    <!-- Галерея наклеек - УВЕЛИЧЕННАЯ -->
-    <div style="margin-top: 30px; padding: 25px; background: #faf8f5; border-radius: 16px; border: 2px dashed #d4c9b8;">
-        <h3 style="margin-top: 0; display: flex; align-items: center; gap: 12px; font-size: 24px;">
-            <span>📸</span> Мои наклейки
-            <span style="font-size: 16px; color: #8a7b66; font-weight: normal;">(можно добавить к уроку)</span>
-        </h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 25px; margin-top: 15px;">
-            {% set custom_stickers = all_stickers|selectattr('is_custom', 'equalto', True)|list %}
-            {% if custom_stickers %}
-                {% for sticker in custom_stickers %}
-                    <div style="position: relative; display: inline-block; background: white; padding: 15px 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; min-width: 120px; transition: transform 0.3s;"
-                         onmouseover="this.style.transform='scale(1.05)'"
-                         onmouseout="this.style.transform='scale(1)'">
-                        <img src="{{ url_for('static', filename='stickers/' + sticker.image_file) }}"
-                             alt="{{ sticker.text }}"
-                             style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 4px solid #5d7b6f; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: block; margin: 0 auto;">
-                        <div style="font-size: 18px; font-weight: bold; color: #4a3f35; margin-top: 10px; text-align: center;">
-                            {{ sticker.text }}
-                        </div>
-                        <div style="font-size: 13px; color: #8a7b66; margin-top: 3px;">
-                            📸 {{ sticker.image_file[:15] }}
-                        </div>
-                        <a href="{{ url_for('delete_custom_sticker', filename=sticker.image_file) }}"
-                           onclick="return confirm('Удалить наклейку?')"
-                           style="position: absolute; top: -8px; right: -8px; background: #ff6b6b; color: white; border-radius: 50%; width: 30px; height: 30px; text-align: center; line-height: 30px; text-decoration: none; font-size: 18px; box-shadow: 0 2px 10px rgba(255,0,0,0.3);">
-                            ✕
-                        </a>
+<!-- Управление обложками и наклейками -->
+<details style="margin-top: 30px; padding: 20px; background: #f5ede0; border-radius: 12px;">
+    <summary style="cursor: pointer; font-size: 20px; font-weight: bold; color: #4a3f35;">🖼️ Управление файлами</summary>
+
+    <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <div style="background: white; padding: 20px; border-radius: 12px;">
+            <h4>🖼️ Загрузить обложку</h4>
+            <form method="post" action="{{ url_for('upload_cover') }}" enctype="multipart/form-data">
+                <input type="file" name="file" accept="image/*" required style="margin-bottom: 10px;">
+                <button type="submit" class="btn" style="font-size: 14px;">Загрузить</button>
+            </form>
+            <div style="margin-top: 10px;">
+                <p style="font-size: 14px; color: #6b5d4e;">Доступные обложки:</p>
+                {% for cover in get_available_covers() %}
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 5px 0;">
+                        <img src="{{ cover.path }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;">
+                        <span style="font-size: 14px;">{{ cover.filename }}</span>
+                        {% if cover.filename != 'default.jpg' %}
+                            <a href="{{ url_for('delete_cover', filename=cover.filename) }}" onclick="return confirm('Удалить обложку?')" style="color: #c0392b; text-decoration: none;">✕</a>
+                        {% endif %}
                     </div>
                 {% endfor %}
-            {% else %}
-                <p style="color: #8a7b66; margin: 15px 0; font-size: 18px;">📭 Нет загруженных наклеек</p>
-            {% endif %}
+            </div>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 12px;">
+            <h4>⭐ Загрузить наклейку</h4>
+            <form method="post" action="{{ url_for('upload_sticker') }}" enctype="multipart/form-data">
+                <input type="file" name="file" accept="image/*" required style="margin-bottom: 10px;">
+                <button type="submit" class="btn" style="font-size: 14px;">Загрузить</button>
+            </form>
+            <div style="margin-top: 10px;">
+                <p style="font-size: 14px; color: #6b5d4e;">Доступные наклейки:</p>
+                {% for sticker in get_all_stickers() %}
+                    {% if sticker.is_custom %}
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 5px 0;">
+                            <img src="{{ url_for('static', filename='stickers/' + sticker.image_file) }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">
+                            <span style="font-size: 14px;">{{ sticker.image_file }}</span>
+                            <a href="{{ url_for('delete_custom_sticker', filename=sticker.image_file) }}" onclick="return confirm('Удалить наклейку?')" style="color: #c0392b; text-decoration: none;">✕</a>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
         </div>
     </div>
-{% endblock %}ф
+</details>
+{% endblock %}

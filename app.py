@@ -1,16 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import os
 import json
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import calendar
 from collections import defaultdict
+from functools import wraps
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///school.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB для фото
 
 # Настройки для загрузки
@@ -35,6 +37,22 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# Модель пользователя (учителя)
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    students = db.relationship('Student', backref='teacher', lazy=True, cascade="all, delete-orphan")
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
 # Модель ученика
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -43,6 +61,7 @@ class Student(db.Model):
     age = db.Column(db.Integer, nullable=False)
     cover = db.Column(db.String(100), default='neutral.jpg')
     color = db.Column(db.String(20), default='yellow')
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     notes = db.relationship('Note', backref='student', lazy=True, cascade="all, delete-orphan")
     stickers = db.relationship('Sticker', backref='student', lazy=True, cascade="all, delete-orphan")
 
@@ -79,6 +98,18 @@ class Attachment(db.Model):
     filepath = db.Column(db.String(300), nullable=False)
     filetype = db.Column(db.String(50), nullable=False)
     note_id = db.Column(db.Integer, db.ForeignKey('note.id'), nullable=False)
+
+
+# Декоратор для проверки авторизации
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите в систему')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 
 # Создаём таблицы
@@ -202,16 +233,100 @@ def utility_processor():
     }
 
 
+# ============ АВТОРИЗАЦИЯ ============
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        email = request.form['email'].strip()
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+
+        # Проверка заполнения
+        if not username or not email or not password:
+            flash('❌ Все поля обязательны для заполнения')
+            return render_template('register.html')
+
+        # Проверка пароля
+        if password != confirm_password:
+            flash('❌ Пароли не совпадают')
+            return render_template('register.html')
+
+        if len(password) < 6:
+            flash('❌ Пароль должен содержать минимум 6 символов')
+            return render_template('register.html')
+
+        # Проверка существования пользователя
+        if User.query.filter_by(username=username).first():
+            flash('❌ Пользователь с таким именем уже существует')
+            return render_template('register.html')
+
+        if User.query.filter_by(email=email).first():
+            flash('❌ Пользователь с таким email уже существует')
+            return render_template('register.html')
+
+        # Создание пользователя
+        user = User(username=username, email=email)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+
+        flash('✅ Регистрация успешна! Теперь войдите в систему')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password = request.form['password']
+
+        user = User.query.filter_by(username=username).first()
+
+        if user and user.check_password(password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            flash(f'✅ Добро пожаловать, {user.username}!')
+            return redirect(url_for('index'))
+        else:
+            flash('❌ Неверное имя пользователя или пароль')
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('👋 Вы вышли из системы')
+    return redirect(url_for('login'))
+
+
+# ============ ОСНОВНЫЕ МАРШРУТЫ ============
+
 @app.route('/')
+@login_required
 def index():
-    students = Student.query.all()
+    user = User.query.get(session['user_id'])
+    students = Student.query.filter_by(user_id=user.id).all()
     all_stickers = get_all_stickers()
-    return render_template('index.html', students=students, all_stickers=all_stickers)
+    return render_template('index.html', students=students, all_stickers=all_stickers, user=user)
 
 
 @app.route('/add_student', methods=['GET', 'POST'])
+@login_required
 def add_student():
     covers = get_available_covers()
+    user = User.query.get(session['user_id'])
+
     if request.method == 'POST':
         name = request.form['name']
         subject = request.form['subject']
@@ -219,7 +334,14 @@ def add_student():
         cover = request.form.get('cover', 'neutral.jpg')
         color = request.form.get('color', 'yellow')
 
-        new_student = Student(name=name, subject=subject, age=age, cover=cover, color=color)
+        new_student = Student(
+            name=name,
+            subject=subject,
+            age=age,
+            cover=cover,
+            color=color,
+            user_id=user.id
+        )
         db.session.add(new_student)
         db.session.commit()
         flash(f'✅ Ученик {name} добавлен!')
@@ -229,8 +351,15 @@ def add_student():
 
 
 @app.route('/student/<int:id>')
+@login_required
 def student_detail(id):
+    user = User.query.get(session['user_id'])
     student = Student.query.get_or_404(id)
+
+    # Проверка доступа
+    if student.user_id != user.id:
+        flash('❌ У вас нет доступа к этой тетради')
+        return redirect(url_for('index'))
 
     search_query = request.args.get('search', '')
     notes = Note.query.filter_by(student_id=id)
@@ -261,7 +390,8 @@ def student_detail(id):
                            search_query=search_query,
                            calendar_data=calendar_data,
                            current_month=current_month,
-                           current_year=current_year)
+                           current_year=current_year,
+                           user=user)
 
 
 def generate_calendar(year, month, notes):
@@ -287,8 +417,15 @@ def generate_calendar(year, month, notes):
 
 
 @app.route('/add_note/<int:student_id>', methods=['GET', 'POST'])
+@login_required
 def add_note(student_id):
+    user = User.query.get(session['user_id'])
     student = Student.query.get_or_404(student_id)
+
+    # Проверка доступа
+    if student.user_id != user.id:
+        flash('❌ У вас нет доступа к этой тетради')
+        return redirect(url_for('index'))
 
     if request.method == 'POST':
         date = request.form['date']
@@ -363,8 +500,17 @@ def add_note(student_id):
 
 
 @app.route('/add_sticker/<int:note_id>', methods=['POST'])
+@login_required
 def add_sticker_to_note(note_id):
+    user = User.query.get(session['user_id'])
     note = Note.query.get_or_404(note_id)
+
+    # Проверка доступа
+    student = Student.query.get(note.student_id)
+    if student.user_id != user.id:
+        flash('❌ У вас нет доступа')
+        return redirect(url_for('index'))
+
     sticker_id = request.form['sticker_id']
 
     all_stickers = get_all_stickers()
@@ -395,8 +541,16 @@ def add_sticker_to_note(note_id):
 
 
 @app.route('/delete_sticker/<int:sticker_id>')
+@login_required
 def delete_sticker(sticker_id):
+    user = User.query.get(session['user_id'])
     sticker = Sticker.query.get_or_404(sticker_id)
+    student = Student.query.get(sticker.student_id)
+
+    if student.user_id != user.id:
+        flash('❌ У вас нет доступа')
+        return redirect(url_for('index'))
+
     student_id = sticker.student_id
     db.session.delete(sticker)
     db.session.commit()
@@ -405,8 +559,16 @@ def delete_sticker(sticker_id):
 
 
 @app.route('/delete_attachment/<int:attachment_id>')
+@login_required
 def delete_attachment(attachment_id):
+    user = User.query.get(session['user_id'])
     attachment = Attachment.query.get_or_404(attachment_id)
+    student = Student.query.get(attachment.note.student_id)
+
+    if student.user_id != user.id:
+        flash('❌ У вас нет доступа')
+        return redirect(url_for('index'))
+
     student_id = attachment.note.student_id
     try:
         filepath = attachment.filepath[1:]
@@ -421,8 +583,16 @@ def delete_attachment(attachment_id):
 
 
 @app.route('/delete_note/<int:note_id>')
+@login_required
 def delete_note(note_id):
+    user = User.query.get(session['user_id'])
     note = Note.query.get_or_404(note_id)
+    student = Student.query.get(note.student_id)
+
+    if student.user_id != user.id:
+        flash('❌ У вас нет доступа')
+        return redirect(url_for('index'))
+
     student_id = note.student.id
     db.session.delete(note)
     db.session.commit()
@@ -431,14 +601,23 @@ def delete_note(note_id):
 
 
 @app.route('/toggle_note/<int:note_id>')
+@login_required
 def toggle_note(note_id):
+    user = User.query.get(session['user_id'])
     note = Note.query.get_or_404(note_id)
+    student = Student.query.get(note.student_id)
+
+    if student.user_id != user.id:
+        flash('❌ У вас нет доступа')
+        return redirect(url_for('index'))
+
     note.is_done = not note.is_done
     db.session.commit()
     return redirect(url_for('student_detail', id=note.student.id))
 
 
 @app.route('/upload_cover', methods=['POST'])
+@login_required
 def upload_cover():
     if 'file' not in request.files:
         flash('❌ Нет файла')
@@ -460,6 +639,7 @@ def upload_cover():
 
 
 @app.route('/upload_sticker', methods=['POST'])
+@login_required
 def upload_sticker():
     if 'file' not in request.files:
         flash('❌ Нет файла')
@@ -481,6 +661,7 @@ def upload_sticker():
 
 
 @app.route('/delete_cover/<filename>')
+@login_required
 def delete_cover(filename):
     try:
         filepath = os.path.join(COVERS_FOLDER, filename)
@@ -495,6 +676,7 @@ def delete_cover(filename):
 
 
 @app.route('/delete_custom_sticker/<filename>')
+@login_required
 def delete_custom_sticker(filename):
     try:
         filepath = os.path.join(UPLOAD_FOLDER, filename)
@@ -509,7 +691,14 @@ def delete_custom_sticker(filename):
 
 
 @app.route('/search_notes/<int:student_id>')
+@login_required
 def search_notes(student_id):
+    user = User.query.get(session['user_id'])
+    student = Student.query.get_or_404(student_id)
+
+    if student.user_id != user.id:
+        return jsonify({'error': 'Доступ запрещён'}), 403
+
     query = request.args.get('q', '')
     notes = Note.query.filter_by(student_id=student_id)
     if query:
@@ -528,6 +717,47 @@ def search_notes(student_id):
             'is_done': note.is_done
         })
     return jsonify(results)
+
+
+# ============ ПРОФИЛЬ ============
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    user = User.query.get(session['user_id'])
+
+    if request.method == 'POST':
+        email = request.form['email'].strip()
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_new_password = request.form.get('confirm_new_password')
+
+        # Обновление email
+        if email and email != user.email:
+            if User.query.filter_by(email=email).first():
+                flash('❌ Этот email уже используется')
+                return redirect(url_for('profile'))
+            user.email = email
+
+        # Обновление пароля
+        if current_password and new_password:
+            if not user.check_password(current_password):
+                flash('❌ Неверный текущий пароль')
+                return redirect(url_for('profile'))
+            if new_password != confirm_new_password:
+                flash('❌ Новые пароли не совпадают')
+                return redirect(url_for('profile'))
+            if len(new_password) < 6:
+                flash('❌ Пароль должен содержать минимум 6 символов')
+                return redirect(url_for('profile'))
+            user.set_password(new_password)
+            flash('✅ Пароль успешно обновлён!')
+
+        db.session.commit()
+        flash('✅ Профиль обновлён!')
+        return redirect(url_for('profile'))
+
+    return render_template('profile.html', user=user)
 
 
 if __name__ == '__main__':

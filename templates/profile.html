@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 style="font-size: 34px;">👤 Профиль</h1>
+
+<div style="max-width: 600px; margin: 25px 0; padding: 30px; background: #fefcf3; border-radius: 16px; border: 2px solid #d4c9b8;">
+    <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e8e0d5;">
+        <p><strong>👤 Имя пользователя:</strong> {{ user.username }}</p>
+        <p><strong>📧 Email:</strong> {{ user.email }}</p>
+        <p><strong>📅 Дата регистрации:</strong> {{ user.created_at.strftime('%d.%m.%Y %H:%M') if user.created_at else 'Неизвестно' }}</p>
+    </div>
+    
+    <form method="post">
+        <h3 style="margin-bottom: 15px;">✏️ Редактировать профиль</h3>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 5px;">📧 Новый Email:</label>
+            <input type="email" name="email" value="{{ user.email }}"
+                   style="width: 100%; padding: 12px; border: 2px solid #d4c9b8; border-radius: 8px; font-size: 16px;">
+        </div>
+        
+        <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #e8e0d5;">
+            <h4 style="margin-bottom: 15px;">🔑 Сменить пароль</h4>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 5px;">Текущий пароль:</label>
+                <input type="password" name="current_password"
+                       style="width: 100%; padding: 12px; border: 2px solid #d4c9b8; border-radius: 8px; font-size: 16px;">
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 5px;">Новый пароль:</label>
+                <input type="password" name="new_password"
+                       style="width: 100%; padding: 12px; border: 2px solid #d4c9b8; border-radius: 8px; font-size: 16px;">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; color: #4a3f35; margin-bottom: 5px;">Подтвердите новый пароль:</label>
+                <input type="password" name="confirm_new_password"
+                       style="width: 100%; padding: 12px; border: 2px solid #d4c9b8; border-radius: 8px; font-size: 16px;">
+            </div>
+        </div>
+        
+        <button type="submit" class="btn" style="font-size: 18px; padding: 14px 35px;">Сохранить изменения 💾</button>
+    </form>
+</div>
+
+<div style="margin-top: 20px;">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary" style="font-size: 16px; padding: 12px 28px;">← На главную</a>
+</div>
+{% endblock %}
